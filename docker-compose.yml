@@ -1,0 +1,27 @@
+version: "3.9"
+
+services:
+  mysql:
+    image: mysql:8.4
+    container_name: hotel_mysql
+    restart: unless-stopped
+    environment:
+      MYSQL_DATABASE: hotel_management
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_USER: hotel
+      MYSQL_PASSWORD: hotel
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+
+  mailhog:
+    image: mailhog/mailhog:latest
+    container_name: hotel_mailhog
+    restart: unless-stopped
+    ports:
+      - "1025:1025"
+      - "8025:8025"
+
+volumes:
+  mysql_data:

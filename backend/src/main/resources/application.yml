@@ -1,0 +1,68 @@
+server:
+  port: ${PORT:8080}
+
+spring:
+  application:
+    name: hotel-management-backend
+  datasource:
+    url: jdbc:mysql://localhost:3306/hotel_management
+    username: root
+    password: root
+    driver-class-name: com.mysql.cj.jdbc.Driver
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    properties:
+      hibernate:
+        format_sql: true
+        jdbc:
+          time_zone: UTC
+    open-in-view: false
+  flyway:
+    enabled: true
+    baseline-on-migrate: true
+  jackson:
+    serialization:
+      write-dates-as-timestamps: false
+  mail:
+    host: smtp.gmail.com
+    port: 587
+    username: tiwarisid022018@gmail.com
+    password: G1o2l3u4
+    properties:
+      mail:
+        smtp:
+          auth: ${SPRING_MAIL_SMTP_AUTH:false}
+          starttls:
+            enable: ${SPRING_MAIL_SMTP_STARTTLS_ENABLE:false}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+  endpoint:
+    health:
+      probes:
+        enabled: true
+
+springdoc:
+  swagger-ui:
+    path: /swagger-ui.html
+
+app:
+  jwt:
+    secret: ${APP_JWT_SECRET:replace-this-secret-with-a-32-char-minimum-value}
+    issuer: hotel-management
+    access-token-seconds: 86400000
+    refresh-token-expiry: 604800000
+  otp:
+    ttl-seconds: ${APP_OTP_TTL_SECONDS:300}
+    length: ${APP_OTP_LENGTH:6}
+    resend-cooldown-seconds: ${APP_OTP_RESEND_COOLDOWN_SECONDS:60}
+  bootstrap:
+    admin-email: ${APP_BOOTSTRAP_ADMIN_EMAIL:admin@hotelhub.com}
+  cors:
+    allowed-origins: http://localhost:5173
+  mail:
+    mock-mode: ${APP_MAIL_MOCK_MODE:true}
