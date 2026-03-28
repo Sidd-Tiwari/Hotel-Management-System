@@ -5,10 +5,10 @@ spring:
   application:
     name: hotel-management-backend
   datasource:
-    url: jdbc:mysql://localhost:3306/hotel_management
-    username: root
-    password: root
-    driver-class-name: com.mysql.cj.jdbc.Driver
+    url: ${SPRING_DATASOURCE_URL:jdbc:mariadb://${MYSQLHOST:localhost}:${MYSQLPORT:3306}/${MYSQLDATABASE:hotel_management}?useUnicode=true&characterEncoding=utf8}
+    username: ${SPRING_DATASOURCE_USERNAME:${MYSQLUSER:hotel}}
+    password: ${SPRING_DATASOURCE_PASSWORD:${MYSQLPASSWORD:hotel}}
+    driver-class-name: org.mariadb.jdbc.Driver
   jpa:
     hibernate:
       ddl-auto: validate
@@ -25,10 +25,10 @@ spring:
     serialization:
       write-dates-as-timestamps: false
   mail:
-    host: smtp.gmail.com
-    port: 587
-    username: tiwarisid022018@gmail.com
-    password: G1o2l3u4
+    host: ${SPRING_MAIL_HOST:localhost}
+    port: ${SPRING_MAIL_PORT:1025}
+    username: ${SPRING_MAIL_USERNAME:}
+    password: ${SPRING_MAIL_PASSWORD:}
     properties:
       mail:
         smtp:
@@ -54,8 +54,7 @@ app:
   jwt:
     secret: ${APP_JWT_SECRET:replace-this-secret-with-a-32-char-minimum-value}
     issuer: hotel-management
-    access-token-seconds: 86400000
-    refresh-token-expiry: 604800000
+    access-token-seconds: ${APP_JWT_ACCESS_TOKEN_SECONDS:28800}
   otp:
     ttl-seconds: ${APP_OTP_TTL_SECONDS:300}
     length: ${APP_OTP_LENGTH:6}
@@ -63,6 +62,6 @@ app:
   bootstrap:
     admin-email: ${APP_BOOTSTRAP_ADMIN_EMAIL:admin@hotelhub.com}
   cors:
-    allowed-origins: http://localhost:5173
+    allowed-origins: ${APP_CORS_ALLOWED_ORIGINS:http://localhost:5173}
   mail:
     mock-mode: ${APP_MAIL_MOCK_MODE:true}
