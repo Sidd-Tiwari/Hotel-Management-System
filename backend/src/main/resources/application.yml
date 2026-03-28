@@ -8,7 +8,7 @@ spring:
     url: ${SPRING_DATASOURCE_URL:jdbc:mariadb://${MYSQLHOST:localhost}:${MYSQLPORT:3306}/${MYSQLDATABASE:hotel_management}?useUnicode=true&characterEncoding=utf8}
     username: ${SPRING_DATASOURCE_USERNAME:${MYSQLUSER:hotel}}
     password: ${SPRING_DATASOURCE_PASSWORD:${MYSQLPASSWORD:hotel}}
-    driver-class-name: org.mariadb.jdbc.Driver
+    driver-class-name: com.mysql.cj.jdbc.Driver
   jpa:
     hibernate:
       ddl-auto: validate
