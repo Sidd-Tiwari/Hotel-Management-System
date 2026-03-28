@@ -1,11 +1,12 @@
 import { Navigate } from "react-router-dom";
 import { useAuth } from "../state/AuthContext";
+import React from "react";
 
 export function ProtectedRoute({
   children,
   adminOnly = false
 }: {
-  children: JSX.Element;
+  children: React.ReactNode;
   adminOnly?: boolean;
 }) {
   const { user } = useAuth();
