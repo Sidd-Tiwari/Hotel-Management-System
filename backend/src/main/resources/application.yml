@@ -63,6 +63,6 @@ app:
   bootstrap:
     admin-email: ${APP_BOOTSTRAP_ADMIN_EMAIL:admin@hotelhub.com}
   cors:
-    allowed-origins: ${APP_CORS_ALLOWED_ORIGINS:http://localhost:5173}
+    allowed-origins: http://localhost:5173,https://hotel-management-system-five-rouge.vercel.app
   mail:
     mock-mode: ${APP_MAIL_MOCK_MODE:true}
