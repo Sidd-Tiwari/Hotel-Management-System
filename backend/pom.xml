@@ -84,6 +84,12 @@
             <version>${springdoc.version}</version>
         </dependency>
 
+		<!-- Resend Mail otp-->
+		<dependency>
+		    <groupId>com.resend</groupId>
+		    <artifactId>resend-java</artifactId>
+		    <version>3.1.0</version>
+		</dependency>
         <!-- JWT -->
         <dependency>
             <groupId>io.jsonwebtoken</groupId>
