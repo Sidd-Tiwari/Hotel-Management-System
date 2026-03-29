@@ -12,19 +12,23 @@ import org.springframework.validation.annotation.Validated;
 @Validated
 @ConfigurationProperties(prefix = "app")
 public class AppProperties {
+
     private final Jwt jwt = new Jwt();
     private final Otp otp = new Otp();
     private final Bootstrap bootstrap = new Bootstrap();
     private final Cors cors = new Cors();
     private final Mail mail = new Mail();
+    private final Resend resend = new Resend();
 
     @Getter
     @Setter
     public static class Jwt {
         @NotBlank
         private String secret;
+
         @NotBlank
         private String issuer;
+
         @Min(300)
         private long accessTokenSeconds = 28800;
     }
@@ -34,8 +38,10 @@ public class AppProperties {
     public static class Otp {
         @Min(60)
         private long ttlSeconds = 300;
+
         @Min(4)
         private int length = 6;
+
         @Min(10)
         private long resendCooldownSeconds = 60;
     }
@@ -56,5 +62,17 @@ public class AppProperties {
     @Setter
     public static class Mail {
         private boolean mockMode = true;
+    }
+
+    @Getter
+    @Setter
+    public static class Resend {
+        @NotBlank
+        private String apiKey;
+
+        @NotBlank
+        private String fromEmail;
+
+        private boolean enabled = true;
     }
 }
