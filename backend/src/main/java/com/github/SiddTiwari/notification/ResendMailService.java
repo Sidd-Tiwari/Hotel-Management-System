@@ -24,23 +24,26 @@ public class ResendMailService {
             return;
         }
 
-        Resend resend = new Resend(appProperties.getResend().getApiKey());
+        try {
+            Resend resend = new Resend(appProperties.getResend().getApiKey());
 
-        CreateEmailOptions params = CreateEmailOptions.builder()
-                .from(appProperties.getResend().getFromEmail())
-                .to(toEmail)
-                .subject("Your OTP Code")
-                .html("""
-                        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-                            <h2 style="color: #222;">Hotel Management System</h2>
-                            <p>Your OTP for login is:</p>
-                            <h1 style="letter-spacing: 4px; color: #0d6efd;">%s</h1>
-                            <p>This OTP is valid for a limited time only.</p>
-                            <p>If you did not request this, please ignore this email.</p>
-                        </div>
-                        """.formatted(otp))
-                .build();
+            CreateEmailOptions params = CreateEmailOptions.builder()
+                    .from(appProperties.getResend().getFromEmail())
+                    .to(toEmail)
+                    .subject("Your OTP Code")
+                    .html("""
+                            <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+                                <h2>Your OTP Code</h2>
+                                <p>Your OTP is: <strong>%s</strong></p>
+                                <p>This OTP expires in 5 minutes.</p>
+                            </div>
+                            """.formatted(otp))
+                    .build();
 
-        resend.emails().send(params);
+            resend.emails().send(params);
+
+        } catch (Exception ex) {
+            throw new RuntimeException("Failed to send OTP email", ex);
+        }
     }
 }
