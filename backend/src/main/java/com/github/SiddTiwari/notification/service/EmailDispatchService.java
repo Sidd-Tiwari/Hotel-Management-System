@@ -3,13 +3,11 @@ package com.github.SiddTiwari.notification.service;
 import com.github.SiddTiwari.config.AppProperties;
 import com.github.SiddTiwari.notification.web.dto.BookingConfirmationRequest;
 import com.github.SiddTiwari.notification.web.dto.OtpNotificationRequest;
+import com.resend.Resend;
+import com.resend.core.exception.ResendException;
+import com.resend.services.emails.model.CreateEmailOptions;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.ObjectProvider;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.mail.MailException;
-import org.springframework.mail.SimpleMailMessage;
-import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.stereotype.Service;
 
 @Service
@@ -17,48 +15,96 @@ import org.springframework.stereotype.Service;
 @RequiredArgsConstructor
 public class EmailDispatchService {
 
-    private final ObjectProvider<JavaMailSender> mailSenderProvider;
     private final AppProperties properties;
-
-    @Value("${spring.mail.username:no-reply@hotelhub.com}")
-    private String fromAddress;
 
     public void sendOtp(OtpNotificationRequest request) {
         String greeting = request.name() == null || request.name().isBlank() ? "Guest" : request.name();
-        String body = "Hello " + greeting + ",\n\nYour OTP is: " + request.otp()
-                + "\nIt will expire in a few minutes.\n\nThanks,\nHotelHub";
-        send(request.email(), "Your HotelHub OTP", body);
+
+        String html = """
+                <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+                    <h2 style="color: #222;">HotelHub OTP Verification</h2>
+                    <p>Hello %s,</p>
+                    <p>Your OTP is:</p>
+                    <div style="font-size: 32px; font-weight: bold; letter-spacing: 6px; color: #0d6efd; margin: 20px 0;">
+                        %s
+                    </div>
+                    <p>It will expire in a few minutes.</p>
+                    <p>If you did not request this OTP, please ignore this email.</p>
+                    <br/>
+                    <p>Thanks,<br/>HotelHub</p>
+                </div>
+                """.formatted(greeting, request.otp());
+
+        send(request.email(), "Your HotelHub OTP", html);
     }
 
     public void sendBookingConfirmation(BookingConfirmationRequest request) {
-        String body = "Your booking is confirmed.\n\nRoom: " + request.roomName()
-                + "\nCheck-in: " + request.checkIn()
-                + "\nCheck-out: " + request.checkOut()
-                + "\nAmount: ₹" + request.totalAmount()
-                + "\n\nWe look forward to hosting you.\n\nHotelHub";
-        send(request.email(), "Booking Confirmed - " + request.roomName(), body);
+        String html = """
+                <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+                    <h2 style="color: #222;">Booking Confirmed</h2>
+                    <p>Your booking is confirmed.</p>
+                    <table style="border-collapse: collapse; width: 100%%; margin-top: 15px;">
+                        <tr>
+                            <td style="padding: 8px; border: 1px solid #ddd;"><strong>Room</strong></td>
+                            <td style="padding: 8px; border: 1px solid #ddd;">%s</td>
+                        </tr>
+                        <tr>
+                            <td style="padding: 8px; border: 1px solid #ddd;"><strong>Check-in</strong></td>
+                            <td style="padding: 8px; border: 1px solid #ddd;">%s</td>
+                        </tr>
+                        <tr>
+                            <td style="padding: 8px; border: 1px solid #ddd;"><strong>Check-out</strong></td>
+                            <td style="padding: 8px; border: 1px solid #ddd;">%s</td>
+                        </tr>
+                        <tr>
+                            <td style="padding: 8px; border: 1px solid #ddd;"><strong>Amount</strong></td>
+                            <td style="padding: 8px; border: 1px solid #ddd;">₹%s</td>
+                        </tr>
+                    </table>
+                    <br/>
+                    <p>We look forward to hosting you.</p>
+                    <p>Thanks,<br/>HotelHub</p>
+                </div>
+                """.formatted(
+                request.roomName(),
+                request.checkIn(),
+                request.checkOut(),
+                request.totalAmount()
+        );
+
+        send(request.email(), "Booking Confirmed - " + request.roomName(), html);
     }
 
-    private void send(String to, String subject, String body) {
+    private void send(String to, String subject, String html) {
         if (properties.getMail().isMockMode()) {
-            log.info("Mock email -> to={}, subject={}, body={}", to, subject, body);
+            log.info("Mock email -> to={}, subject={}, html={}", to, subject, html);
             return;
         }
-        JavaMailSender mailSender = mailSenderProvider.getIfAvailable();
-        if (mailSender == null) {
-            log.info("Mail sender unavailable, logging instead -> to={}, subject={}, body={}", to, subject, body);
+
+        if (!properties.getResend().isEnabled()) {
+            log.info("Resend disabled. Skipping email -> to={}, subject={}", to, subject);
             return;
         }
-        SimpleMailMessage message = new SimpleMailMessage();
-        message.setFrom(fromAddress);
-        message.setTo(to);
-        message.setSubject(subject);
-        message.setText(body);
+
         try {
-            mailSender.send(message);
-        } catch (MailException ex) {
-            log.error("Failed to send email", ex);
+            Resend resend = new Resend(properties.getResend().getApiKey());
+
+            CreateEmailOptions params = CreateEmailOptions.builder()
+                    .from(properties.getResend().getFromEmail())
+                    .to(to)
+                    .subject(subject)
+                    .html(html)
+                    .build();
+
+            resend.emails().send(params);
+            log.info("Email sent successfully -> to={}, subject={}", to, subject);
+
+        } catch (ResendException ex) {
+            log.error("Failed to send email via Resend -> to={}, subject={}", to, subject, ex);
             throw ex;
+        } catch (Exception ex) {
+            log.error("Unexpected error while sending email -> to={}, subject={}", to, subject, ex);
+            throw new RuntimeException("Failed to send email", ex);
         }
     }
 }
