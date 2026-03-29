@@ -4,7 +4,6 @@ import com.github.SiddTiwari.config.AppProperties;
 import com.github.SiddTiwari.notification.web.dto.BookingConfirmationRequest;
 import com.github.SiddTiwari.notification.web.dto.OtpNotificationRequest;
 import com.resend.Resend;
-import com.resend.core.exception.ResendException;
 import com.resend.services.emails.model.CreateEmailOptions;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -99,11 +98,8 @@ public class EmailDispatchService {
             resend.emails().send(params);
             log.info("Email sent successfully -> to={}, subject={}", to, subject);
 
-        } catch (ResendException ex) {
-            log.error("Failed to send email via Resend -> to={}, subject={}", to, subject, ex);
-            throw ex;
         } catch (Exception ex) {
-            log.error("Unexpected error while sending email -> to={}, subject={}", to, subject, ex);
+            log.error("Failed to send email -> to={}, subject={}", to, subject, ex);
             throw new RuntimeException("Failed to send email", ex);
         }
     }
