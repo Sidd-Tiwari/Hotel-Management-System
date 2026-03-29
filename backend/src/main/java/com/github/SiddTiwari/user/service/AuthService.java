@@ -1,15 +1,19 @@
 package com.github.SiddTiwari.user.service;
 
 import com.github.SiddTiwari.config.AppProperties;
-import com.github.SiddTiwari.notification.service.EmailDispatchService;
-import com.github.SiddTiwari.notification.web.dto.OtpNotificationRequest;
+import com.github.SiddTiwari.notification.ResendMailService;
 import com.github.SiddTiwari.security.JwtService;
 import com.github.SiddTiwari.user.domain.AppUser;
 import com.github.SiddTiwari.user.domain.OtpCode;
 import com.github.SiddTiwari.user.domain.UserRole;
 import com.github.SiddTiwari.user.repository.OtpRepository;
 import com.github.SiddTiwari.user.repository.UserRepository;
-import com.github.SiddTiwari.user.web.dto.*;
+import com.github.SiddTiwari.user.web.dto.AuthResponse;
+import com.github.SiddTiwari.user.web.dto.OtpDispatchResponse;
+import com.github.SiddTiwari.user.web.dto.OtpRequest;
+import com.github.SiddTiwari.user.web.dto.UpdateRoleRequest;
+import com.github.SiddTiwari.user.web.dto.UserResponse;
+import com.github.SiddTiwari.user.web.dto.VerifyOtpRequest;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -24,9 +28,10 @@ import java.util.List;
 @Service
 @RequiredArgsConstructor
 public class AuthService {
+
     private final UserRepository userRepository;
     private final OtpRepository otpRepository;
-    private final EmailDispatchService emailDispatchService;
+    private final ResendMailService resendMailService;
     private final JwtService jwtService;
     private final AppProperties properties;
     private final PasswordEncoder passwordEncoder;
@@ -35,14 +40,22 @@ public class AuthService {
     @Transactional
     public OtpDispatchResponse requestOtp(OtpRequest request) {
         String email = normalizeEmail(request.email());
+
         otpRepository.findTopByEmailOrderByCreatedAtDesc(email).ifPresent(existing -> {
-            if (existing.getCreatedAt().plusSeconds(properties.getOtp().getResendCooldownSeconds()).isAfter(OffsetDateTime.now())) {
-                throw new ResponseStatusException(HttpStatus.TOO_MANY_REQUESTS, "Please wait before requesting another OTP");
+            if (existing.getCreatedAt()
+                    .plusSeconds(properties.getOtp().getResendCooldownSeconds())
+                    .isAfter(OffsetDateTime.now())) {
+                throw new ResponseStatusException(
+                        HttpStatus.TOO_MANY_REQUESTS,
+                        "Please wait before requesting another OTP"
+                );
             }
         });
+
         otpRepository.deleteAllByEmail(email);
 
         String otp = generateOtp(properties.getOtp().getLength());
+
         otpRepository.save(OtpCode.builder()
                 .email(email)
                 .otpHash(passwordEncoder.encode(otp))
@@ -50,13 +63,15 @@ public class AuthService {
                 .used(false)
                 .build());
 
-        emailDispatchService.sendOtp(new OtpNotificationRequest(email, otp, request.name()));
+        resendMailService.sendOtp(email, otp);
+
         return new OtpDispatchResponse(email, "OTP sent successfully");
     }
 
     @Transactional
     public AuthResponse verifyOtp(VerifyOtpRequest request) {
         String email = normalizeEmail(request.email());
+
         OtpCode otpCode = otpRepository.findTopByEmailOrderByCreatedAtDesc(email)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST, "OTP not requested"));
 
@@ -80,12 +95,20 @@ public class AuthService {
 
         user.setVerified(true);
         user.setName(resolveName(request.name(), user.getName() != null ? user.getName() : email));
+
         if (user.getRole() == null) {
             user.setRole(resolveRole(email));
         }
 
         AppUser saved = userRepository.save(user);
-        return new AuthResponse(jwtService.generateToken(saved), saved.getId(), saved.getName(), saved.getEmail(), saved.getRole());
+
+        return new AuthResponse(
+                jwtService.generateToken(saved),
+                saved.getId(),
+                saved.getName(),
+                saved.getEmail(),
+                saved.getRole()
+        );
     }
 
     public UserResponse me(String email) {
@@ -118,13 +141,22 @@ public class AuthService {
     }
 
     private String resolveName(String provided, String fallback) {
-        if (provided != null && !provided.isBlank()) return provided.trim();
+        if (provided != null && !provided.isBlank()) {
+            return provided.trim();
+        }
         String localPart = fallback.contains("@") ? fallback.substring(0, fallback.indexOf("@")) : fallback;
         return localPart.replace('.', ' ').replace('_', ' ').trim();
     }
 
     private UserResponse toResponse(AppUser user) {
-        return new UserResponse(user.getId(), user.getName(), user.getEmail(), user.getRole(), user.isVerified(), user.getCreatedAt());
+        return new UserResponse(
+                user.getId(),
+                user.getName(),
+                user.getEmail(),
+                user.getRole(),
+                user.isVerified(),
+                user.getCreatedAt()
+        );
     }
 
     private String generateOtp(int length) {
